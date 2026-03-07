@@ -14,7 +14,7 @@ Shell plugin for Mac that connects [MTerm](https://apps.apple.com/us/app/mterm-s
 ## Install
 
 ```bash
-git clone https://github.com/mtermapp/mterm-mac ~/.mterm/plugin
+git clone https://github.com/mtermapp/mterm-shell ~/.mterm/plugin
 ```
 
 Add to `~/.zshrc` or `~/.bashrc`:

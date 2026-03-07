@@ -12,7 +12,7 @@
 ## 설치
 
 ```bash
-git clone https://github.com/mtermapp/mterm-mac ~/.mterm/plugin
+git clone https://github.com/mtermapp/mterm-shell ~/.mterm/plugin
 ```
 
 `~/.zshrc` 또는 `~/.bashrc`에 추가:

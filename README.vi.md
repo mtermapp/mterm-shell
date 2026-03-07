@@ -12,7 +12,7 @@ Shell plugin kết nối [MTerm](https://apps.apple.com/us/app/mterm-ssh-termina
 ## Cài đặt
 
 ```bash
-git clone https://github.com/mtermapp/mterm-mac ~/.mterm/plugin
+git clone https://github.com/mtermapp/mterm-shell ~/.mterm/plugin
 ```
 
 Thêm vào `~/.zshrc` hoặc `~/.bashrc`:

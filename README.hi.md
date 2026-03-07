@@ -12,7 +12,7 @@ SSH के माध्यम से [MTerm](https://apps.apple.com/us/app/mterm
 ## इंस्टॉल करें
 
 ```bash
-git clone https://github.com/mtermapp/mterm-mac ~/.mterm/plugin
+git clone https://github.com/mtermapp/mterm-shell ~/.mterm/plugin
 ```
 
 `~/.zshrc` या `~/.bashrc` में जोड़ें:

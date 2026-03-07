@@ -12,7 +12,7 @@ Shell plugin สำหรับเชื่อมต่อ [MTerm](https://apps.
 ## ติดตั้ง
 
 ```bash
-git clone https://github.com/mtermapp/mterm-mac ~/.mterm/plugin
+git clone https://github.com/mtermapp/mterm-shell ~/.mterm/plugin
 ```
 
 เพิ่มใน `~/.zshrc` หรือ `~/.bashrc`:
