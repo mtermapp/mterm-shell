@@ -33,7 +33,8 @@ _MTERM_TTY=$(tty 2>/dev/null || true)
 if [ -n "$_MTERM_TTY" ]; then
     # 既に起動済みの sessions デーモンがあればスキップ
     if [ -z "$_MTERM_SESSIONS_PID" ] || ! kill -0 "$_MTERM_SESSIONS_PID" 2>/dev/null; then
-        bash "$_MTERM_SCRIPTS_DIR/sessions.sh" "$_MTERM_TTY" &
+        # nohup + リダイレクトでジョブ通知（[N] Done等）を完全に抑制
+        { bash "$_MTERM_SCRIPTS_DIR/sessions.sh" "$_MTERM_TTY" >/dev/null 2>&1 & } 2>/dev/null
         _MTERM_SESSIONS_PID=$!
         disown "$_MTERM_SESSIONS_PID" 2>/dev/null || true
     fi
