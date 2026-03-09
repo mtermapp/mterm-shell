@@ -31,13 +31,21 @@ source "$_MTERM_SCRIPTS_DIR/notify.sh"
 # sessions: バックグラウンドで abduco セッション一覧を定期送信
 _MTERM_TTY=$(tty 2>/dev/null || true)
 if [ -n "$_MTERM_TTY" ]; then
-    # 既に起動済みの sessions デーモンがあればスキップ
-    if [ -z "$_MTERM_SESSIONS_PID" ] || ! kill -0 "$_MTERM_SESSIONS_PID" 2>/dev/null; then
+    # TTY ごとに PID ファイルで多重起動を防止
+    _MTERM_TTY_NAME=$(basename "$_MTERM_TTY")
+    _MTERM_PID_FILE="$HOME/.mterm/sessions-${_MTERM_TTY_NAME}.pid"
+    mkdir -p "$HOME/.mterm"
+
+    _existing_pid=""
+    [ -f "$_MTERM_PID_FILE" ] && _existing_pid=$(cat "$_MTERM_PID_FILE" 2>/dev/null)
+
+    if [ -z "$_existing_pid" ] || ! kill -0 "$_existing_pid" 2>/dev/null; then
         # nohup + リダイレクトでジョブ通知（[N] Done等）を完全に抑制
         { bash "$_MTERM_SCRIPTS_DIR/sessions.sh" "$_MTERM_TTY" >/dev/null 2>&1 & } 2>/dev/null
-        _MTERM_SESSIONS_PID=$!
-        disown "$_MTERM_SESSIONS_PID" 2>/dev/null || true
+        echo $! > "$_MTERM_PID_FILE"
+        disown $! 2>/dev/null || true
     fi
+    unset _existing_pid _MTERM_TTY_NAME _MTERM_PID_FILE
 fi
 
 # mterm-session コマンド: セッション名を指定して abduco セッションを作成/リネーム
