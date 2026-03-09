@@ -4,14 +4,38 @@
 # 使い方:
 #   mterm              # 現在のディレクトリ名でセッション作成/アタッチ
 #   mterm "claude"     # 指定名でセッション作成/アタッチ
+#   mterm list         # セッション一覧表示
+#   mterm detach       # 現在のセッションからデタッチ
+#   mterm version      # バージョン表示
+#   mterm help         # ヘルプ表示
+
+_MTERM_VERSION="0.1"
 
 _mterm_session_cmd() {
     local name="${1:-}"
     local meta_file="$HOME/.mterm/sessions.json"
 
+    # help サブコマンド
+    if [ "$name" = "help" ] || [ "$name" = "--help" ] || [ "$name" = "-h" ]; then
+        _mterm_help
+        return 0
+    fi
+
+    # version サブコマンド
+    if [ "$name" = "version" ] || [ "$name" = "--version" ] || [ "$name" = "-v" ]; then
+        echo "mterm $_MTERM_VERSION"
+        return 0
+    fi
+
     # list サブコマンド
     if [ "$name" = "list" ]; then
         _mterm_session_list
+        return $?
+    fi
+
+    # detach サブコマンド
+    if [ "$name" = "detach" ]; then
+        _mterm_detach
         return $?
     fi
 
@@ -189,4 +213,35 @@ _mterm_session_list() {
     echo "MTerm セッションシートを更新中..."
     _mterm_send_sessions_now
     echo "送信完了"
+}
+
+# 現在の abduco セッションからデタッチ
+_mterm_detach() {
+    if [ -z "$MTERM_SESSION" ]; then
+        echo "mterm: abduco セッション内ではありません"
+        return 1
+    fi
+    # abduco の親プロセス（abduco デーモン）に SIGQUIT を送ってデタッチ
+    local abduco_pid
+    abduco_pid=$(ps -o ppid= -p $$ 2>/dev/null | tr -d ' ')
+    if [ -n "$abduco_pid" ] && kill -0 "$abduco_pid" 2>/dev/null; then
+        kill -QUIT "$abduco_pid"
+    else
+        echo "mterm: デタッチに失敗しました（abduco プロセスが見つかりません）"
+        return 1
+    fi
+}
+
+# ヘルプ表示
+_mterm_help() {
+    echo "mterm $_MTERM_VERSION - MTerm セッションマネージャー"
+    echo ""
+    echo "使い方:"
+    echo "  mterm [名前]    セッションを作成/アタッチ（省略時はディレクトリ名）"
+    echo "  mterm list      セッション一覧を表示"
+    echo "  mterm detach    現在のセッションからデタッチ"
+    echo "  mterm version   バージョンを表示"
+    echo "  mterm help      このヘルプを表示"
+    echo ""
+    echo "デタッチ: Ctrl+\\ でも可"
 }
