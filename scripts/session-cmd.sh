@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# session-cmd.sh — mterm コマンドの実装
+# session-cmd.sh — mterm command implementation
 #
-# 使い方:
-#   mterm              # 現在のディレクトリ名でセッション作成/アタッチ
-#   mterm "claude"     # 指定名でセッション作成/アタッチ
-#   mterm list         # セッション一覧表示
-#   mterm detach       # 現在のセッションからデタッチ
-#   mterm version      # バージョン表示
-#   mterm help         # ヘルプ表示
+# Usage:
+#   mterm              # Create or attach using current directory name
+#   mterm "claude"     # Create or attach with specified name
+#   mterm list         # List sessions
+#   mterm detach       # Detach from current session
+#   mterm version      # Show version
+#   mterm help         # Show help
 
 _MTERM_VERSION="0.1"
 
@@ -15,57 +15,55 @@ _mterm_session_cmd() {
     local name="${1:-}"
     local meta_file="$HOME/.mterm/sessions.json"
 
-    # help サブコマンド
+    # help
     if [ "$name" = "help" ] || [ "$name" = "--help" ] || [ "$name" = "-h" ]; then
         _mterm_help
         return 0
     fi
 
-    # version サブコマンド
+    # version
     if [ "$name" = "version" ] || [ "$name" = "--version" ] || [ "$name" = "-v" ]; then
         echo "mterm $_MTERM_VERSION"
         return 0
     fi
 
-    # list サブコマンド
+    # list
     if [ "$name" = "list" ] || [ "$name" = "-l" ]; then
         _mterm_session_list
         return $?
     fi
 
-    # detach サブコマンド
+    # detach
     if [ "$name" = "detach" ] || [ "$name" = "-d" ]; then
         _mterm_detach
         return $?
     fi
 
-    # attach サブコマンド（-a name）
+    # attach (-a name)
     if [ "$name" = "-a" ]; then
         name="${2:-}"
         if [ -z "$name" ]; then
-            echo "mterm: セッション名を指定してください"
-            echo "  mterm -a <名前>"
+            echo "mterm: session name required"
+            echo "  mterm -a <name>"
             return 1
         fi
     fi
 
-    # 名前未指定の場合はカレントディレクトリ名を使用
+    # default to current directory name
     if [ -z "$name" ]; then
         name=$(basename "$PWD")
     fi
 
-    # abduco チェック
+    # abduco check
     if ! command -v abduco >/dev/null 2>&1; then
-        echo "mterm: abduco がインストールされていません"
+        echo "mterm: abduco is not installed"
         echo "  brew install abduco"
         return 1
     fi
 
-    # MTERM_SESSION 環境変数を設定してから abduco にアタッチ
-    # 既存セッションへのアタッチ、または新規作成
     export MTERM_SESSION="$name"
 
-    # sessions.json に事前登録（アタッチ前にメタ情報を書き込む）
+    # register in sessions.json before attaching
     local dir
     dir=$(echo "$PWD" | sed "s|$HOME|~|")
     local ts
@@ -84,26 +82,24 @@ _mterm_session_cmd() {
 
     echo "MTerm session: $name"
 
-    # セッション一覧を即時 MTerm に送信（シートに表示されるよう）
+    # send session list to MTerm immediately
     _mterm_send_sessions_now
 
-    # abduco に入る前に外側の sessions.sh を停止
-    # （停止しないと sessions.sh の OSC が abduco にキーボード入力として誤認される）
+    # stop sessions.sh daemon before entering abduco (prevents TTY corruption)
     _mterm_sessions_daemon_stop
 
-    # アタッチを試み（-f: 既存クライアントを切断して強制アタッチ）、なければ新規作成
+    # attach to existing session or create new one
     if abduco -f -a "$name" 2>/dev/null; then
         :
     else
-        # 新規セッション: MTERM_SESSION を引き継いだシェルで起動
         abduco -c "$name" env MTERM_SESSION="$name" "${SHELL:-zsh}"
     fi
 
-    # abduco から戻ったら sessions.sh を再起動
+    # restart sessions.sh daemon after returning from abduco
     _mterm_sessions_daemon_start
 }
 
-# sessions デーモンを停止（PID ファイルを使用）
+# stop sessions daemon (using PID file)
 _mterm_sessions_daemon_stop() {
     local tty_name pid_file pid
     tty_name=$(basename "$(tty 2>/dev/null || echo unknown)")
@@ -115,7 +111,7 @@ _mterm_sessions_daemon_stop() {
     fi
 }
 
-# sessions デーモンを起動
+# start sessions daemon
 _mterm_sessions_daemon_start() {
     [ -z "$_MTERM_SCRIPTS_DIR" ] && return 0
     local tty pid_file
@@ -124,7 +120,6 @@ _mterm_sessions_daemon_start() {
     local tty_name
     tty_name=$(basename "$tty")
     pid_file="$HOME/.mterm/sessions-${tty_name}.pid"
-    # 既に起動済みならスキップ
     if [ -f "$pid_file" ]; then
         local pid
         pid=$(cat "$pid_file" 2>/dev/null)
@@ -136,7 +131,7 @@ _mterm_sessions_daemon_start() {
     disown $! 2>/dev/null || true
 }
 
-# abduco セッション一覧を OSC 1212;sessions で即時送信
+# send abduco session list via OSC 1212;sessions immediately
 _mterm_send_sessions_now() {
     command -v abduco >/dev/null 2>&1 || return 0
 
@@ -199,60 +194,58 @@ _mterm_send_sessions_now() {
     fi
 }
 
-# セッション一覧表示 + MTerm に OSC 送信
+# list sessions
 _mterm_session_list() {
     if ! command -v abduco >/dev/null 2>&1; then
-        echo "mterm: abduco がインストールされていません"
+        echo "mterm: abduco is not installed"
         echo "  brew install abduco"
         return 1
     fi
 
     echo "=== abduco sessions ==="
-    abduco 2>/dev/null || echo "(なし)"
+    abduco 2>/dev/null || echo "(none)"
     echo ""
     echo "=== sessions.json ==="
     local meta_file="$HOME/.mterm/sessions.json"
     if [ -f "$meta_file" ]; then
         cat "$meta_file"
     else
-        echo "(なし)"
+        echo "(none)"
     fi
     echo ""
 
-    # MTerm のセッションシートを更新
-    echo "MTerm セッションシートを更新中..."
+    echo "Updating MTerm session sheet..."
     _mterm_send_sessions_now
-    echo "送信完了"
+    echo "Done"
 }
 
-# 現在の abduco セッションからデタッチ
+# detach from current abduco session
 _mterm_detach() {
     if [ -z "$MTERM_SESSION" ]; then
-        echo "mterm: abduco セッション内ではありません"
+        echo "mterm: not inside an abduco session"
         return 1
     fi
-    # abduco の親プロセス（abduco デーモン）に SIGQUIT を送ってデタッチ
     local abduco_pid
     abduco_pid=$(ps -o ppid= -p $$ 2>/dev/null | tr -d ' ')
     if [ -n "$abduco_pid" ] && kill -0 "$abduco_pid" 2>/dev/null; then
         kill -QUIT "$abduco_pid"
     else
-        echo "mterm: デタッチに失敗しました（abduco プロセスが見つかりません）"
+        echo "mterm: detach failed (abduco process not found)"
         return 1
     fi
 }
 
-# ヘルプ表示
+# show help
 _mterm_help() {
-    echo "mterm $_MTERM_VERSION - MTerm セッションマネージャー"
+    echo "mterm $_MTERM_VERSION - MTerm session manager"
     echo ""
-    echo "使い方:"
-    echo "  mterm [名前]      セッションを作成/アタッチ（省略時はディレクトリ名）"
-    echo "  mterm -a <名前>   セッションにアタッチ"
-    echo "  mterm -l          セッション一覧を表示"
-    echo "  mterm -d          現在のセッションからデタッチ"
-    echo "  mterm -v          バージョンを表示"
-    echo "  mterm -h          このヘルプを表示"
+    echo "Usage:"
+    echo "  mterm [name]      Create or attach to a session (defaults to current directory name)"
+    echo "  mterm -a <name>   Attach to a session"
+    echo "  mterm -l          List sessions"
+    echo "  mterm -d          Detach from current session"
+    echo "  mterm -v          Show version"
+    echo "  mterm -h          Show this help"
     echo ""
-    echo "デタッチ: Ctrl+\\ でも可"
+    echo "Tip: Ctrl+\\ also detaches"
 }
