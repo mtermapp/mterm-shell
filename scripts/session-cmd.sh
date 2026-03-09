@@ -28,15 +28,25 @@ _mterm_session_cmd() {
     fi
 
     # list サブコマンド
-    if [ "$name" = "list" ]; then
+    if [ "$name" = "list" ] || [ "$name" = "-l" ]; then
         _mterm_session_list
         return $?
     fi
 
     # detach サブコマンド
-    if [ "$name" = "detach" ]; then
+    if [ "$name" = "detach" ] || [ "$name" = "-d" ]; then
         _mterm_detach
         return $?
+    fi
+
+    # attach サブコマンド（-a name）
+    if [ "$name" = "-a" ]; then
+        name="${2:-}"
+        if [ -z "$name" ]; then
+            echo "mterm: セッション名を指定してください"
+            echo "  mterm -a <名前>"
+            return 1
+        fi
     fi
 
     # 名前未指定の場合はカレントディレクトリ名を使用
@@ -237,11 +247,12 @@ _mterm_help() {
     echo "mterm $_MTERM_VERSION - MTerm セッションマネージャー"
     echo ""
     echo "使い方:"
-    echo "  mterm [名前]    セッションを作成/アタッチ（省略時はディレクトリ名）"
-    echo "  mterm list      セッション一覧を表示"
-    echo "  mterm detach    現在のセッションからデタッチ"
-    echo "  mterm version   バージョンを表示"
-    echo "  mterm help      このヘルプを表示"
+    echo "  mterm [名前]      セッションを作成/アタッチ（省略時はディレクトリ名）"
+    echo "  mterm -a <名前>   セッションにアタッチ"
+    echo "  mterm -l          セッション一覧を表示"
+    echo "  mterm -d          現在のセッションからデタッチ"
+    echo "  mterm -v          バージョンを表示"
+    echo "  mterm -h          このヘルプを表示"
     echo ""
     echo "デタッチ: Ctrl+\\ でも可"
 }
