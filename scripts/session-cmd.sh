@@ -9,6 +9,12 @@ _mterm_session_cmd() {
     local name="${1:-}"
     local meta_file="$HOME/.mterm/sessions.json"
 
+    # list サブコマンド
+    if [ "$name" = "list" ]; then
+        _mterm_session_list
+        return $?
+    fi
+
     # 名前未指定の場合はカレントディレクトリ名を使用
     if [ -z "$name" ]; then
         name=$(basename "$PWD")
@@ -116,4 +122,30 @@ _mterm_send_sessions_now() {
             printf '\033]1212;sessions;%s\007' "$(echo "$result" | tr -d '\n\r')"
         fi
     fi
+}
+
+# セッション一覧表示 + MTerm に OSC 送信
+_mterm_session_list() {
+    if ! command -v abduco >/dev/null 2>&1; then
+        echo "mterm-session: abduco がインストールされていません"
+        echo "  brew install abduco"
+        return 1
+    fi
+
+    echo "=== abduco sessions ==="
+    abduco 2>/dev/null || echo "(なし)"
+    echo ""
+    echo "=== sessions.json ==="
+    local meta_file="$HOME/.mterm/sessions.json"
+    if [ -f "$meta_file" ]; then
+        cat "$meta_file"
+    else
+        echo "(なし)"
+    fi
+    echo ""
+
+    # MTerm のセッションシートを更新
+    echo "MTerm セッションシートを更新中..."
+    _mterm_send_sessions_now
+    echo "送信完了"
 }
