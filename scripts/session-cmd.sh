@@ -53,9 +53,8 @@ _mterm_session_cmd() {
     # セッション一覧を即時 MTerm に送信（シートに表示されるよう）
     _mterm_send_sessions_now
 
-    # アタッチを試み、なければ新規作成
-    # -e detach-key をデフォルトの Ctrl-\ にする（abduco デフォルト）
-    if abduco -a "$name" 2>/dev/null; then
+    # アタッチを試み（-f: 既存クライアントを切断して強制アタッチ）、なければ新規作成
+    if abduco -f -a "$name" 2>/dev/null; then
         return 0
     else
         # 新規セッション: MTERM_SESSION を引き継いだシェルで起動
