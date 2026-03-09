@@ -53,13 +53,53 @@ _mterm_session_cmd() {
     # セッション一覧を即時 MTerm に送信（シートに表示されるよう）
     _mterm_send_sessions_now
 
+    # abduco に入る前に外側の sessions.sh を停止
+    # （停止しないと sessions.sh の OSC が abduco にキーボード入力として誤認される）
+    _mterm_sessions_daemon_stop
+
     # アタッチを試み（-f: 既存クライアントを切断して強制アタッチ）、なければ新規作成
     if abduco -f -a "$name" 2>/dev/null; then
-        return 0
+        :
     else
         # 新規セッション: MTERM_SESSION を引き継いだシェルで起動
         abduco -c "$name" env MTERM_SESSION="$name" "${SHELL:-zsh}"
     fi
+
+    # abduco から戻ったら sessions.sh を再起動
+    _mterm_sessions_daemon_start
+}
+
+# sessions デーモンを停止（PID ファイルを使用）
+_mterm_sessions_daemon_stop() {
+    local tty_name pid_file pid
+    tty_name=$(basename "$(tty 2>/dev/null || echo unknown)")
+    pid_file="$HOME/.mterm/sessions-${tty_name}.pid"
+    if [ -f "$pid_file" ]; then
+        pid=$(cat "$pid_file" 2>/dev/null)
+        [ -n "$pid" ] && kill "$pid" 2>/dev/null
+        rm -f "$pid_file"
+    fi
+}
+
+# sessions デーモンを起動
+_mterm_sessions_daemon_start() {
+    [ -z "$_MTERM_SCRIPTS_DIR" ] && return 0
+    local tty pid_file
+    tty=$(tty 2>/dev/null || true)
+    [ -z "$tty" ] && return 0
+    local tty_name
+    tty_name=$(basename "$tty")
+    pid_file="$HOME/.mterm/sessions-${tty_name}.pid"
+    # 既に起動済みならスキップ
+    if [ -f "$pid_file" ]; then
+        local pid
+        pid=$(cat "$pid_file" 2>/dev/null)
+        kill -0 "$pid" 2>/dev/null && return 0
+    fi
+    mkdir -p "$HOME/.mterm"
+    { bash "$_MTERM_SCRIPTS_DIR/sessions.sh" "$tty" >/dev/null 2>&1 & } 2>/dev/null
+    echo $! > "$pid_file"
+    disown $! 2>/dev/null || true
 }
 
 # abduco セッション一覧を OSC 1212;sessions で即時送信
