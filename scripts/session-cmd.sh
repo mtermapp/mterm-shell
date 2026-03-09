@@ -237,11 +237,12 @@ _mterm_kill() {
 
     # find socket file (~/.abduco/name@hostname)
     local socket
-    socket=$(ls "$HOME/.abduco/${name}@"* 2>/dev/null | head -1)
-    if [ -z "$socket" ] || [ ! -S "$socket" ]; then
+    socket=$(ls "$HOME/.abduco/" 2>/dev/null | grep "^${name}@" | head -1)
+    if [ -z "$socket" ]; then
         echo "mterm: session '$name' not found"
         return 1
     fi
+    socket="$HOME/.abduco/$socket"
 
     # find abduco daemon PID via lsof
     local pid
