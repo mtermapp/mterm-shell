@@ -77,10 +77,10 @@ _mterm_send_sessions_now() {
         [[ "$line" =~ ^active ]] && continue
         [[ -z "${line// }" ]] && continue
 
-        local attached
-        if [[ "$line" =~ ^\* ]] || [[ "$line" =~ ^\+ ]]; then
+        local attached first_char="${line:0:1}"
+        if [[ "$first_char" == "*" ]] || [[ "$first_char" == "+" ]]; then
             attached=true
-        elif [[ "$line" =~ ^[[:space:]] ]] || [[ "$line" =~ ^- ]]; then
+        elif [[ "$first_char" == " " ]] || [[ "$first_char" == "-" ]]; then
             attached=false
         else
             continue
