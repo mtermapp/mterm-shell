@@ -5,6 +5,7 @@
 #   mterm              # Create or attach using current directory name
 #   mterm "claude"     # Create or attach with specified name
 #   mterm list         # List sessions
+#   mterm kill <name>  # Kill a session
 #   mterm detach       # Detach from current session
 #   mterm version      # Show version
 #   mterm help         # Show help
@@ -36,6 +37,12 @@ _mterm_session_cmd() {
     # detach
     if [ "$name" = "detach" ] || [ "$name" = "-d" ]; then
         _mterm_detach
+        return $?
+    fi
+
+    # kill
+    if [ "$name" = "kill" ] || [ "$name" = "-k" ]; then
+        _mterm_kill "${2:-}"
         return $?
     fi
 
@@ -219,6 +226,43 @@ _mterm_session_list() {
     echo "Done"
 }
 
+# kill a session (terminate process + remove socket)
+_mterm_kill() {
+    local name="${1:-}"
+    if [ -z "$name" ]; then
+        echo "mterm: session name required"
+        echo "  mterm kill <name>"
+        return 1
+    fi
+
+    # find socket file (~/.abduco/name@hostname)
+    local socket
+    socket=$(ls "$HOME/.abduco/${name}@"* 2>/dev/null | head -1)
+    if [ -z "$socket" ] || [ ! -S "$socket" ]; then
+        echo "mterm: session '$name' not found"
+        return 1
+    fi
+
+    # find abduco daemon PID via lsof
+    local pid
+    pid=$(lsof -t "$socket" 2>/dev/null | head -1)
+    if [ -n "$pid" ]; then
+        kill -TERM "$pid" 2>/dev/null
+        sleep 0.3
+        kill -0 "$pid" 2>/dev/null && kill -KILL "$pid" 2>/dev/null
+    fi
+
+    # remove socket file and sessions.json entry
+    rm -f "$socket"
+    local meta_file="$HOME/.mterm/sessions.json"
+    if [ -f "$meta_file" ] && command -v jq >/dev/null 2>&1; then
+        jq --arg n "$name" 'del(.[$n])' "$meta_file" > "${meta_file}.tmp" && mv "${meta_file}.tmp" "$meta_file"
+    fi
+
+    echo "mterm: session '$name' killed"
+    _mterm_send_sessions_now
+}
+
 # detach from current abduco session
 _mterm_detach() {
     if [ -z "$MTERM_SESSION" ]; then
@@ -243,6 +287,7 @@ _mterm_help() {
     echo "  mterm [name]      Create or attach to a session (defaults to current directory name)"
     echo "  mterm -a <name>   Attach to a session"
     echo "  mterm -l          List sessions"
+    echo "  mterm -k <name>   Kill a session"
     echo "  mterm -d          Detach from current session"
     echo "  mterm -v          Show version"
     echo "  mterm -h          Show this help"
