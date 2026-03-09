@@ -58,7 +58,7 @@ _mterm_update_session_meta() {
             --arg ts "$ts" \
             '{"dir":$dir,"branch":$branch,"cmd":$cmd,"last_active":$ts}')
         echo "$existing" | jq --arg name "$MTERM_SESSION" --argjson entry "$entry" \
-            '.[$name] = $entry' > "$meta_file.tmp" && /bin/mv -f "$meta_file.tmp" "$meta_file"
+            '.[$name] = $entry' > "$meta_file"
     else
         # jq なし: シンプルな上書き
         local entry="{\"dir\":\"$dir\",\"branch\":\"$branch\",\"cmd\":\"$cmd\",\"last_active\":\"$ts\"}"

@@ -39,8 +39,7 @@ _mterm_session_cmd() {
         entry=$(jq -n --arg dir "$dir" --arg ts "$ts" \
             '{"dir":$dir,"branch":"","cmd":"","last_active":$ts}')
         echo "$existing" | jq --arg n "$name" --argjson e "$entry" \
-            'if .[$n] then . else .[$n] = $e end' > "$meta_file.tmp" 2>/dev/null \
-            && /bin/mv -f "$meta_file.tmp" "$meta_file"
+            'if .[$n] then . else .[$n] = $e end' > "$meta_file" 2>/dev/null
     fi
 
     echo "MTerm session: $name"
