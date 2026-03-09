@@ -32,27 +32,29 @@ build_sessions_json() {
     [ -f "$META_FILE" ] && meta=$(cat "$META_FILE" 2>/dev/null || echo "{}")
 
     while IFS= read -r line; do
-        # ヘッダー行と空行をスキップ
-        [[ "$line" =~ ^active ]] && continue
+        # 空行をスキップ
         [[ -z "${line// }" ]] && continue
 
-        # ステータス判定
+        # ステータス判定（新形式: */space、旧形式: +/-）
         local attached
-        if [[ "$line" =~ ^[[:space:]]*\+ ]]; then
+        if [[ "$line" =~ ^\* ]] || [[ "$line" =~ ^\+ ]]; then
             attached=true
-        elif [[ "$line" =~ ^[[:space:]]*- ]]; then
+        elif [[ "$line" =~ ^[[:space:]] ]] || [[ "$line" =~ ^- ]]; then
             attached=false
         else
-            continue
+            continue  # ヘッダー行などをスキップ
         fi
 
-        # セッション名を抽出（日時フィールドの後、括弧の前）
-        # フォーマット: [+-] YYYY-MM-DD HH:MM:SS  <name>  [N]
+        # セッション名を抽出（新旧フォーマット両対応）
+        # 新形式: "* Mon    YYYY-MM-DD HH:MM:SS    name"
+        # 旧形式: "+ YYYY-MM-DD HH:MM:SS    name    [N]"
         local name
-        name=$(echo "$line" | sed 's/^[[:space:]]*[+-][[:space:]]*//' \
-            | sed 's/[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}[[:space:]]*[0-9]\{2\}:[0-9]\{2\}:[0-9]\{2\}[[:space:]]*//' \
+        name=$(echo "$line" | cut -c3- \
+            | sed 's/^[A-Za-z][a-z][a-z][[:space:]]*//' \
+            | sed 's/^[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}[[:space:]]*//' \
+            | sed 's/^[0-9]\{2\}:[0-9]\{2\}:[0-9]\{2\}[[:space:]]*//' \
             | sed 's/[[:space:]]*\[.*\][[:space:]]*$//' \
-            | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+            | sed 's/[[:space:]]*$//')
         [ -z "$name" ] && continue
 
         # セッションメタ情報を sessions.json から取得

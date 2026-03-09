@@ -78,19 +78,21 @@ _mterm_send_sessions_now() {
         [[ -z "${line// }" ]] && continue
 
         local attached
-        if [[ "$line" =~ ^[[:space:]]*\+ ]]; then
+        if [[ "$line" =~ ^\* ]] || [[ "$line" =~ ^\+ ]]; then
             attached=true
-        elif [[ "$line" =~ ^[[:space:]]*- ]]; then
+        elif [[ "$line" =~ ^[[:space:]] ]] || [[ "$line" =~ ^- ]]; then
             attached=false
         else
             continue
         fi
 
         local sname
-        sname=$(echo "$line" | sed 's/^[[:space:]]*[+-][[:space:]]*//' \
-            | sed 's/[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}[[:space:]]*[0-9]\{2\}:[0-9]\{2\}:[0-9]\{2\}[[:space:]]*//' \
+        sname=$(echo "$line" | cut -c3- \
+            | sed 's/^[A-Za-z][a-z][a-z][[:space:]]*//' \
+            | sed 's/^[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}[[:space:]]*//' \
+            | sed 's/^[0-9]\{2\}:[0-9]\{2\}:[0-9]\{2\}[[:space:]]*//' \
             | sed 's/[[:space:]]*\[.*\][[:space:]]*$//' \
-            | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+            | sed 's/[[:space:]]*$//')
         [ -z "$sname" ] && continue
 
         local sdir sbranch scmd
