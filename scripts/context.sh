@@ -78,3 +78,6 @@ if [ -n "$BASH_VERSION" ]; then
         PROMPT_COMMAND="mterm_update_context;${PROMPT_COMMAND:-}"
     fi
 fi
+
+# 接続直後に即時送信（プロンプト表示を待たずにタブ名を更新）
+mterm_update_context

@@ -44,6 +44,9 @@ _mterm_session_cmd() {
 
     echo "MTerm session: $name"
 
+    # セッション一覧を即時 MTerm に送信（シートに表示されるよう）
+    _mterm_send_sessions_now
+
     # アタッチを試み、なければ新規作成
     # -e detach-key をデフォルトの Ctrl-\ にする（abduco デフォルト）
     if abduco -a "$name" 2>/dev/null; then
@@ -51,5 +54,66 @@ _mterm_session_cmd() {
     else
         # 新規セッション: MTERM_SESSION を引き継いだシェルで起動
         abduco -c "$name" env MTERM_SESSION="$name" "${SHELL:-zsh}"
+    fi
+}
+
+# abduco セッション一覧を OSC 1212;sessions で即時送信
+_mterm_send_sessions_now() {
+    command -v abduco >/dev/null 2>&1 || return 0
+
+    local meta_file="$HOME/.mterm/sessions.json"
+    local meta="{}"
+    [ -f "$meta_file" ] && meta=$(cat "$meta_file" 2>/dev/null || echo "{}")
+
+    local result="["
+    local first=true
+
+    while IFS= read -r line; do
+        [[ "$line" =~ ^active ]] && continue
+        [[ -z "${line// }" ]] && continue
+
+        local attached
+        if [[ "$line" =~ ^[[:space:]]*\+ ]]; then
+            attached=true
+        elif [[ "$line" =~ ^[[:space:]]*- ]]; then
+            attached=false
+        else
+            continue
+        fi
+
+        local sname
+        sname=$(echo "$line" | sed 's/^[[:space:]]*[+-][[:space:]]*//' \
+            | sed 's/[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}[[:space:]]*[0-9]\{2\}:[0-9]\{2\}:[0-9]\{2\}[[:space:]]*//' \
+            | sed 's/[[:space:]]*\[.*\][[:space:]]*$//' \
+            | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        [ -z "$sname" ] && continue
+
+        local sdir sbranch scmd
+        if command -v jq >/dev/null 2>&1; then
+            sdir=$(echo "$meta" | jq -r --arg n "$sname" '.[$n].dir // "~"' 2>/dev/null || echo "~")
+            sbranch=$(echo "$meta" | jq -r --arg n "$sname" '.[$n].branch // ""' 2>/dev/null || echo "")
+            scmd=$(echo "$meta" | jq -r --arg n "$sname" '.[$n].cmd // ""' 2>/dev/null || echo "")
+        else
+            sdir="~"; sbranch=""; scmd=""
+        fi
+
+        local entry="{\"id\":\"$sname\",\"name\":\"$sname\",\"source\":\"mac\",\"dir\":\"$sdir\",\"attached\":$attached"
+        [ -n "$sbranch" ] && entry="${entry},\"branch\":\"$sbranch\""
+        [ -n "$scmd" ]    && entry="${entry},\"cmd\":\"$scmd\""
+        entry="${entry}}"
+
+        [ "$first" = true ] || result+=","
+        result+="$entry"
+        first=false
+    done <<< "$(abduco 2>/dev/null)"
+
+    result+="]"
+
+    if [ "$result" != "[]" ]; then
+        if [ -n "$TMUX" ]; then
+            printf '\033Ptmux;\033\033]1212;sessions;%s\007\033\\' "$(echo "$result" | tr -d '\n\r')"
+        else
+            printf '\033]1212;sessions;%s\007' "$(echo "$result" | tr -d '\n\r')"
+        fi
     fi
 }
