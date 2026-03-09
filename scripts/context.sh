@@ -80,4 +80,8 @@ if [ -n "$BASH_VERSION" ]; then
 fi
 
 # 接続直後に即時送信（プロンプト表示を待たずにタブ名を更新）
-mterm_update_context
+# abduco セッション内（MTERM_SESSION 設定済み）では precmd で発火するので不要
+# （OSC をセッション内 PTY に即時送信すると abduco が画面を破壊する場合がある）
+if [ -z "$MTERM_SESSION" ]; then
+    mterm_update_context
+fi

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# session-cmd.sh — mterm-session コマンドの実装
+# session-cmd.sh — mterm コマンドの実装
 #
 # 使い方:
-#   mterm-session              # 現在のディレクトリ名でセッション作成/アタッチ
-#   mterm-session "claude"     # 指定名でセッション作成/アタッチ
+#   mterm              # 現在のディレクトリ名でセッション作成/アタッチ
+#   mterm "claude"     # 指定名でセッション作成/アタッチ
 
 _mterm_session_cmd() {
     local name="${1:-}"
@@ -22,7 +22,7 @@ _mterm_session_cmd() {
 
     # abduco チェック
     if ! command -v abduco >/dev/null 2>&1; then
-        echo "mterm-session: abduco がインストールされていません"
+        echo "mterm: abduco がインストールされていません"
         echo "  brew install abduco"
         return 1
     fi
@@ -168,7 +168,7 @@ _mterm_send_sessions_now() {
 # セッション一覧表示 + MTerm に OSC 送信
 _mterm_session_list() {
     if ! command -v abduco >/dev/null 2>&1; then
-        echo "mterm-session: abduco がインストールされていません"
+        echo "mterm: abduco がインストールされていません"
         echo "  brew install abduco"
         return 1
     fi

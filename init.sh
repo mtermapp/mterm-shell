@@ -48,8 +48,8 @@ if [ -n "$_MTERM_TTY" ]; then
     unset _existing_pid _MTERM_TTY_NAME _MTERM_PID_FILE
 fi
 
-# mterm-session コマンド: セッション名を指定して abduco セッションを作成/リネーム
-mterm-session() {
+# mterm コマンド: セッション名を指定して abduco セッションを作成/アタッチ
+mterm() {
     # shellcheck disable=SC1091
     source "$_MTERM_SCRIPTS_DIR/session-cmd.sh"
     _mterm_session_cmd "$@"
